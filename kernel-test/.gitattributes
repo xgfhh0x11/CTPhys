@@ -1,0 +1,4 @@
+# Force LF regardless of core.autocrlf -- these are bash scripts meant
+# to run under WSL2/Linux; CRLF line endings break the shebang and
+# `bash script.sh` execution.
+*.sh text eol=lf
