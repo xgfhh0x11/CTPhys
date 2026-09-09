@@ -1,0 +1,110 @@
++----------------------------------------------------------+
+|  CTPhys — elimination tree                               |
+|  Phase 1 -> Phase 5                                      |
++----------------------------------------------------------+
+
+[ CS101 claim ]
+----------------------------------------------------------
+ - no branches
+ - fixed input length
+ - fixed instruction count
+ ->  "constant-time"
+
+
+            |
+            v
+
+
+[ Phase 1 - baseline rdtscp + average ]
+----------------------------------------------------------
+ observed:
+   - average is (almost) the same across bit-pattern toggles
+   - histogram is *multi-modal* even at this stage
+ ->  algorithmic determinism != physical determinism
+
+
+            |
+            v
+
+
+[ Phase 2 - bit-pattern toggle (LSB vs MSB) ]
+----------------------------------------------------------
+ observed:
+   - average barely moves
+   - histogram *shape* changes
+ ->  bit-level data influences microarchitectural path
+     selection
+
+
+            |
+            v
+
+
+[ Phase 3 - cache eliminated ]
+----------------------------------------------------------
+ each iteration:
+   clflush(A); clflush(B); mfence
+ then: lfence; rdtscp; lfence
+
+ observed:
+   - distribution stays multi-modal
+   - long tail persists
+ eliminates:
+   - cache hits/misses
+   - cache-line contention
+ ->  the leak is core-internal, not cache-internal
+
+
+            |
+            v
+
+
+[ Phase 4 - store eliminated ]
+----------------------------------------------------------
+ single diff vs phase 3:
+   volatile uint8_t r  ->  uint8_t r
+
+ observed:
+   - histogram collapses to a single peak
+   - tail vanishes
+ conclusion:
+   - leak source = forced store +
+     store-to-load forwarding +
+     loop-carried store dependency
+ ->  not cache, not ALU (yet)
+
+
+            |
+            v
+
+
+[ Phase 5 - ALU / port contention injected ]
+----------------------------------------------------------
+ single diff vs phase 4:
+   add an ALU-heavy dependency chain to the loop body
+   (no extra stores, no extra memory accesses)
+
+ observed:
+   - histogram is multi-modal again
+   - second cluster well-separated from the main peak
+ eliminates:
+   - cache       (still flushed)
+   - store       (volatile still absent)
+   - branch      (none added)
+ ->  execution-port pressure / uop scheduling
+     is a leak surface on its own
+
+
+            |
+            v
+
+
+[ summary ]
+----------------------------------------------------------
+ "constant-time" is an algorithmic claim.
+ Physical constant-time must be argued against:
+   - cache layout / addressing
+   - store buffer state
+   - execution-port pressure / dependency chains
+   - speculation residue
+ "Branchless" != "Leakless".

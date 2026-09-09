@@ -1,0 +1,7 @@
+# Phase 1 — sample summary on a quiet x86_64 Linux host (-O2, CPU 0 pinned)
+# Two runs differing only in B[0] ^= 0x01 vs B[0] ^= 0x80
+# The averages agree to two cycles; the textbook reading is "constant-time confirmed."
+# Phase 3 reveals this conclusion to be premature.
+
+run_lsb_toggle  avg_cycles=183
+run_msb_toggle  avg_cycles=185

@@ -1,0 +1,36 @@
+name: Python tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/requirements.txt
+
+      - name: Run pytest
+        run: python -m pytest tests/ -v
+
+      - name: Analyser smoke-test on shipped histograms
+        run: |
+          python scripts/analyze_histogram.py data/phase3_histogram.txt
+          python scripts/analyze_histogram.py data/phase4_histogram.txt
+          python scripts/analyze_histogram.py data/phase5_histogram.txt

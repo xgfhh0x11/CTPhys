@@ -1,0 +1,15 @@
+# Phase 4 — cycles count
+# Single change vs Phase 3: `volatile` dropped from the accumulator.
+# Histogram collapses to a single peak; tail vanishes.
+60 2
+62 156
+64 4823
+66 36782
+68 95431
+70 51209
+72 9851
+74 1487
+76 198
+78 41
+80 8
+82 2
