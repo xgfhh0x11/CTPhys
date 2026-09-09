@@ -18,7 +18,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import bisect
 import json
 import sys
 from dataclasses import asdict, dataclass
@@ -46,8 +45,13 @@ def load_histogram(path: str) -> Dict[int, int]:
             parts = stripped.split()
             if len(parts) != 2:
                 raise ValueError(f'{path}:{lineno}: expected two columns, got {stripped!r}')
-            cycles = int(parts[0])
-            count = int(parts[1])
+            try:
+                cycles = int(parts[0])
+                count = int(parts[1])
+            except ValueError as e:
+                raise ValueError(
+                    f'{path}:{lineno}: expected two integer columns, got {stripped!r}'
+                ) from e
             if cycles < 0:
                 raise ValueError(f'{path}:{lineno}: negative cycle count')
             if count <= 0:
@@ -142,7 +146,12 @@ def main(argv=None) -> int:
     ap.add_argument('--json', action='store_true', help='emit JSON only')
     args = ap.parse_args(argv)
 
-    hist = load_histogram(args.path)
+    try:
+        hist = load_histogram(args.path)
+    except (ValueError, OSError) as e:
+        print(f'error: {e}', file=sys.stderr)
+        return 2
+
     summary = summarise(hist)
 
     if args.json:

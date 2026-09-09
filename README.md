@@ -4,9 +4,23 @@
 
 A four-phase, reproducible experiment showing that a textbook
 "constant-time" `memcmp` written without branches, with fixed input
-length, fixed addresses, and identical instruction count, can still
-produce data-dependent timing variance on commodity x86 CPUs — and
-isolating *which microarchitectural mechanism* is responsible.
+length and fixed addresses, still produces measurable run-to-run
+**timing jitter** on commodity x86 CPUs when comparing the *same*
+fixed pair of buffers over and over — and walking through a sequence
+of eliminations (cache, store buffer, ALU port pressure) whose
+results are *consistent with* a microarchitectural origin for that
+jitter, without conclusively proving it.
+
+**What this is not**: the secret buffer is XORed once before the
+measurement loop and never varies between iterations, so this is not
+a data-dependent-timing experiment in the dudect/ct-verif sense (no
+interleaved fixed-vs-random inputs, no statistical test between input
+classes). And because "cycles" here are `rdtscp` reference-clock
+ticks with no CPU-frequency, P-state, or turbo-transition controls,
+the band structure attributed to store-buffer/ALU-port effects in
+phases 3-5 has *not* excluded frequency scaling as an alternative
+explanation. Treat the causal attribution as a working hypothesis,
+not an established result.
 
 The companion C programs are short on purpose. The point is the
 *sequence of eliminations*, not any one program.
@@ -18,9 +32,9 @@ The companion C programs are short on purpose. The point is the
 | Phase | Setup | What collapses, what survives |
 |---|---|---|
 | **1 — Baseline** | `rdtscp` + average over N runs | Average *looks* constant. **Histogram is multi-modal.** |
-| **3 — Cache eliminated** | `clflush(A); clflush(B); mfence` before every iteration | Histogram is *still* multi-modal with a long tail. **Cache is not the leak.** |
-| **4 — Store eliminated** | Drop `volatile` on the accumulator `r` | Histogram collapses to a single peak. **The leak was the forced store.** |
-| **5 — ALU contention injected** | Add an ALU-heavy dependency chain to the loop body | Multi-modal again, *without* `volatile`. **Execution-port pressure is its own leak surface.** |
+| **3 — Cache eliminated** | `clflush(A); clflush(B); mfence` before every iteration | Histogram is *still* multi-modal with a long tail. **Cache alone doesn't explain it.** |
+| **4 — Store eliminated** | Drop `volatile` on the accumulator `r` | Histogram collapses to a single peak. **Consistent with the forced store as the driver.** |
+| **5 — ALU contention injected** | Add an ALU-heavy dependency chain to the loop body | Multi-modal again, *without* `volatile`. **Consistent with execution-port pressure as an independent driver.** |
 
 The bottom line:
 
@@ -37,14 +51,20 @@ intro-to-crypto book teaches. It is also, on real silicon, *not enough
 on its own*.
 
 This repository walks through the gap empirically: identical source
-code, identical inputs (modulo a single bit toggle), identical
-addresses, identical loop count — and yet the timing distribution
-behaves differently in observable, reproducible ways.
+code, identical addresses, identical loop count, the *same fixed*
+input pair for the whole measurement run — and yet the per-call
+timing distribution is multi-modal, not a single sharp peak, in
+observable, reproducible ways. That is jitter under a fixed input,
+not evidence that timing tracks the *value* of the secret; showing
+the latter would require interleaving two input classes and running
+a statistical test between them, which this repository does not do.
 
 The contribution is pedagogic: a layered elimination experiment that a
 defender can read top-to-bottom and end up with a working intuition
 for *why* validating constant-time claims requires more than
-inspecting C source.
+inspecting C source — and, just as importantly, for how easy it is to
+over-attribute a timing artifact to the wrong microarchitectural
+cause without controlling for confounds like frequency scaling.
 
 ## Repository layout
 
@@ -162,11 +182,34 @@ What it does *not* produce:
 
 The output is the *negative result*: a demonstration that the
 defender's CS101 intuition about constant-time is insufficient on
-modern silicon, with a clean isolation of the dominant leak source
-on one host.
+modern silicon. The phase-by-phase elimination is *suggestive* of a
+dominant leak source on one host — it is not a controlled isolation,
+since P-state/turbo transitions are never excluded (see
+Limitations).
 
 ## Limitations
 
+- **This is a jitter experiment, not a data-dependence experiment.**
+  Within every phase, `A` and `B` are fixed once at the top of
+  `main()` (`B[0] ^= 0x01`) and never change across the `R` measured
+  iterations. Multi-modality in a histogram therefore shows that
+  *repeated measurements of one fixed input* are not identically
+  distributed — it does not show that timing depends on the *value*
+  of the secret. A genuine data-dependence claim needs two
+  interleaved input classes (dudect-style fixed-vs-random) and a
+  statistical test (Welch's t / KS) between the resulting
+  distributions; neither exists in this repository yet.
+- **The microarchitectural attribution is an unconfirmed hypothesis.**
+  `rdtscp` reports invariant-TSC reference ticks, not retired core
+  cycles, and nothing here pins CPU frequency, disables turbo, or
+  fixes the P-state/C-state. Frequency-scaling transitions alone can
+  produce well-separated timing bands that look identical to the
+  store-buffer / ALU-port-contention signatures phases 3-5 claim to
+  isolate. Distinguishing them would require hardware performance
+  counters (e.g. `UOPS_DISPATCHED_PORT.*`, `RESOURCE_STALLS.SB`) or a
+  pinned-frequency governor, neither of which this harness has. Read
+  the phase 3 -> 4 -> 5 trajectory as "consistent with" the stated
+  mechanisms, not as proof of them.
 - The conclusions are illustrative, not universal. A different
   microarchitecture (e.g. AMD Zen 4 vs Intel Skylake-Server) will
   produce different histograms and may reverse the relative

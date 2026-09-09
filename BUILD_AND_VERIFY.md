@@ -1,9 +1,7 @@
 # CTPhys — Build & Verification
 
-> *Quality gate for the HBO NL portfolio. This file answers:
-> "Is this project buildable, runnable, and behaving as documented?"*
-
-> *Last updated: 2026-05-14 — post P0–P3 fix pass.*
+> *This file answers: "Is this project buildable, runnable, and
+> behaving as documented?"*
 
 ## 1. Build
 
@@ -252,17 +250,6 @@ regressions on the shipped reference histograms pinning the phase 3 / 4
   is Python-only on Ubuntu; a regression in the C sources would not be
   caught by CI. Conversely, a Windows breakage of the Python path
   would also be missed (CI is Linux-only).
-- ~~**Output filename mismatch with README.** The README's `Run them`
-  block writes `./build/phase1`, `./build/phase3`, etc., but the
-  Makefile builds `phase1_baseline`, `phase3_no_cache`,
-  `phase4_no_store`, `phase5_alu_contention` (full source basenames).
-  Copy-pasting the README commands verbatim fails with
-  `No such file or directory`.~~ **RESOLVED 2026-05-14** — README's
-  `Run them` block now uses the full Makefile basenames
-  (`./build/phase1_baseline`, `./build/phase3_no_cache`,
-  `./build/phase4_no_store`, `./build/phase5_alu_contention`).
-  Copy-paste of the README commands now works against `make all`
-  output.
 - **Non-deterministic measurement output.** Re-running a phase
   produces *different numbers*; only the *qualitative shape* (modality,
   relative tail) is expected to be stable, and even that depends on
@@ -286,19 +273,12 @@ regressions on the shipped reference histograms pinning the phase 3 / 4
   without ever invoking GCC.
 - **Cannot install matplotlib.** Plotting is strictly optional; the
   analyser already prints all numeric figures the README cites.
-- ~~**README run commands fail.** Use the full basenames from the
-  Makefile (`./build/phase1_baseline`, etc.) — see §3.1.~~
-  **RESOLVED 2026-05-14** — README now uses the full basenames
-  directly; no workaround needed.
 - **`pip install` blocked.** `pytest` is the only test-time dep; the
   analyser itself is stdlib-only and can be run directly.
 
 ### 3.3 Roadmap
 
 - **Short-term (<= 1 day)**:
-  - ~~Fix the README's `./build/phase1` / `./build/phase3` / etc.
-    commands to match the actual Makefile output names.~~
-    **DONE 2026-05-14.**
   - Add a `make test` target that runs `python -m pytest tests/`, and
     a `make verify` target that additionally runs the analyser against
     the three shipped histograms (mirroring the CI smoke-test).
@@ -334,5 +314,5 @@ regressions on the shipped reference histograms pinning the phase 3 / 4
 | Build files internally consistent | ✅ | Makefile pattern rule `$(BUILD)/%: $(SRC)/%.c` matches `src/phase*.c` filenames; `$(PHASES)` list (`phase1_baseline phase3_no_cache phase4_no_store phase5_alu_contention`) is exhaustive over `src/`. |
 | Source structure matches README | ✅ | README §"Repository layout" lists `src/phase{1,3,4,5}_*.c`, `data/phase*_*.txt`, `scripts/analyze_histogram.py`, `scripts/plot_histograms.py`, `tests/`, `docs/flow_diagram.txt` — every entry exists on disk. |
 | Tests exist | ✅ | `tests/test_analyzer.py` defines 14 tests; `tests/conftest.py` wires `scripts/` onto `sys.path`. |
-| Test invocation documented | ✅ | The README now has a "Tests" section spelling out `pip install -r tests/requirements.txt` + `python -m pytest tests/ -v` (added 2026-06-10), matching the CI workflow. |
-| Output artifacts named in build files | ✅ | Makefile produces `build/phase1_baseline`, `build/phase3_no_cache`, `build/phase4_no_store`, `build/phase5_alu_contention`. As of 2026-05-14 the README's "Run them" block uses these exact basenames; copy-paste of the README's run commands now matches `make all` output. |
+| Test invocation documented | ✅ | The README has a "Tests" section spelling out `pip install -r tests/requirements.txt` + `python -m pytest tests/ -v`, matching the CI workflow. |
+| Output artifacts named in build files | ✅ | Makefile produces `build/phase1_baseline`, `build/phase3_no_cache`, `build/phase4_no_store`, `build/phase5_alu_contention`. The README's "Run them" block uses these exact basenames; copy-paste of the README's run commands matches `make all` output. |

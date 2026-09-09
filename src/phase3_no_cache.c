@@ -27,6 +27,7 @@
 #endif
 
 static uint64_t hist[MAX_CYCLES];
+static uint64_t overflow_count = 0;
 
 static inline uint64_t rdtscp_fenced(void) {
     unsigned aux;
@@ -55,7 +56,8 @@ int main(void) {
     pin_cpu0();
 
     enum { N = 64, R = 200000 };
-    static uint8_t A[N], B[N];
+    static uint8_t A[N] __attribute__((aligned(64)));
+    static uint8_t B[N] __attribute__((aligned(64)));
     memset(A, 0xAA, N);
     memset(B, 0xAA, N);
     B[0] ^= 0x01;
@@ -75,8 +77,11 @@ int main(void) {
         uint64_t d = t1 - t0;
         if (d < MAX_CYCLES)
             hist[d]++;
+        else
+            overflow_count++;
     }
 
+    printf("# total=%d dropped=%lu\n", R, overflow_count);
     for (int i = 0; i < MAX_CYCLES; i++) {
         if (hist[i])
             printf("%d %lu\n", i, hist[i]);

@@ -1,6 +1,6 @@
 # Phase 5 — cycles count
 # Single change vs Phase 4: an ALU-heavy dependency chain is added.
-# Distribution becomes bimodal again: ~64-70 main, ~94-104 second plato.
+# Distribution becomes bimodal again: ~64-70 main, ~94-104 second plateau.
 # Cache and store buffer remain quiet; ALU port contention is the only
 # remaining candidate.
 62 23
